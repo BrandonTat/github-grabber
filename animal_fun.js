@@ -1,39 +1,101 @@
 const fs = require('fs');
 const http = require('http');
 const queryString = require('querystring');
+const cache = {};
 
-// let letter = process.argv[2].toUpperCase();
+//////////////////////////////////////////// PART 1
+
+// fs.readFile('./animals.txt', 'utf-8', (err, data) => {
+//   if (err) {
+//     console.log(err);
+//     return;
+//   }
 //
-function selectAnimals(animalString, animalLetter) {
-  return animalString
-    .split('\n')
-    .filter(animal => animal.startsWith(animalLetter))
-    .join('\n');
-}
+//   console.log(data);
+// });
+//
+// fs.writeFile('./example.txt', 'written', err => {
+//   if (err) {
+//     console.log(err);
+//     return;
+//   }
+//
+//   console.log("successfully written");
+// });
+
+//////////////////////////////////////////// PART 2
+
+// const animalLetter = (process.argv[2]).toUpperCase();
+//
+// function selectAnimals(letter, animals) {
+//   return animals.split('\n')
+//   .filter(animal => animal.startsWith(letter))
+//   .join('\n');
+// }
+//
 //
 // fs.readFile('./animals.txt', 'utf-8', (err, data) => {
 //   if (err) {
 //     console.log(err);
 //     return;
 //   }
-//   let animals = data.split('\n');
 //
-//   let selectedAnimals = selectAnimals(data, letter);
+//   let animals = selectAnimals(animalLetter, data);
 //
-//   fs.writeFile(`./${letter}_animals.txt`, selectedAnimals, err => {
-//     if(err) {
+//   fs.writeFile(`./${animalLetter}_animals.txt`, animals, err => {
+//     if (err) {
 //       console.log(err);
-//     } else {
-//       console.log("successfully written");
+//       return;
 //     }
+//
+//     console.log("Successfully returned matching animals");
 //   });
 // });
 
-const server = http.createServer((req, res) => {
-  const query = req.url.split('?')[1];
+//////////////////////////////////////////// PART 3
+
+// const server = http.createServer((req, res) => {
+//   res.write('Hello Brandon');
+//   res.end();
+// });
+//
+// server.listen(8000, () => console.log('Listening on port 8000'));
+
+//////////////////////////////////////////// PART 4
+
+function selectAnimals(animalLetter, animals) {
+  return animals.split('\n')
+    .filter(animal => animal.startsWith(animalLetter))
+    .join('\n');
+}
+
+const animalServer = http.createServer((req, res) => {
+  let query = req.url.split('?')[1];
 
   if (query !== undefined) {
-    let animalLetter = queryString.parse(query).letter.toUpperCase();
+    let letter = queryString.parse(query).letter.toUpperCase();
+
+    if (cache[letter] !== undefined) {
+      return cache[letter];
+    }
+
+    if (letter !== undefined) {
+      fs.readFile('./animals.txt', 'utf-8', (err, data) => {
+        if (err) {
+          console.log(err);
+          res.end('Not Working');
+          return;
+        }
+
+        const animals = selectAnimals(letter, data);
+        cache[letter] = animals;
+        res.end(animals);
+      });
+    }
+  } else {
+    if (cache['animals'] !== undefined) {
+      return cache['animals'];
+    }
 
     fs.readFile('./animals.txt', 'utf-8', (err, data) => {
       if (err) {
@@ -41,20 +103,11 @@ const server = http.createServer((req, res) => {
         res.end('Not Working');
         return;
       }
-      const animals = selectAnimals(data, animalLetter);
-      res.end(animals);
-    });
-  } else {
-    fs.readFile('./animals.txt', 'utf-8', (err, data) => {
-      if(err) {
-        console.log(err);
-        res.end('Not Working');
-        return;
-      } else {
-        res.end(data);
-      }
+
+      cache['animals'] = data;
+      res.end(data);
     });
   }
 });
 
-server.listen(8000, () => console.log("I'm listening on port 8000"));
+animalServer.listen(8000, () => console.log('Listening on port 8000'));
